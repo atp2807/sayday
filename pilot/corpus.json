@@ -1,0 +1,25 @@
+{
+  "_comment": "sayday STT 검증용 planted-error 코퍼스. 각 문장은 한국인 학습자가 흔히 내는 문법 오류를 '일부러' 포함. 학습자는 script를 소리내어 읽는다(오류 포함). STT가 error_ngram을 살려서 전사하면 preserved(성공), corrected_ngram으로 고쳐서 전사하면 auto-corrected(제품 킬러). normalize: 소문자화·구두점제거 후 부분매칭.",
+  "planted_errors": [
+    {"id": "PE01", "target": "present_perfect_vs_past", "script": "I have went to Busan last weekend.", "error_ngram": "have went", "corrected_ngram": ["have gone", "had gone", "went to busan"]},
+    {"id": "PE02", "target": "article_omission", "script": "I bought new car yesterday.", "error_ngram": "bought new car", "corrected_ngram": ["bought a new car", "a new car"]},
+    {"id": "PE03", "target": "subject_verb_agreement", "script": "My brother don't like coffee.", "error_ngram": "brother don't", "corrected_ngram": ["brother doesn't", "doesn't like"]},
+    {"id": "PE04", "target": "past_tense_bare", "script": "Yesterday I go to the library.", "error_ngram": "yesterday i go", "corrected_ngram": ["i went", "yesterday i went"]},
+    {"id": "PE05", "target": "preposition", "script": "I arrived to the airport at nine.", "error_ngram": "arrived to", "corrected_ngram": ["arrived at"]},
+    {"id": "PE06", "target": "uncountable_plural", "script": "She gave me many advices.", "error_ngram": "many advices", "corrected_ngram": ["much advice", "a lot of advice", "many pieces"]},
+    {"id": "PE07", "target": "be_omission", "script": "He very tired after work.", "error_ngram": "he very tired", "corrected_ngram": ["he is very tired", "he was very tired", "he's very tired"]},
+    {"id": "PE08", "target": "relative_resumptive", "script": "The man who he lives next door is a doctor.", "error_ngram": "who he lives", "corrected_ngram": ["who lives next door"]},
+    {"id": "PE09", "target": "third_sg_s", "script": "She work at a bank.", "error_ngram": "she work at", "corrected_ngram": ["she works at"]},
+    {"id": "PE10", "target": "did_plus_past", "script": "I didn't went there.", "error_ngram": "didn't went", "corrected_ngram": ["didn't go"]},
+    {"id": "PE11", "target": "gerund_infinitive", "script": "I enjoy to play soccer on Sundays.", "error_ngram": "enjoy to play", "corrected_ngram": ["enjoy playing"]},
+    {"id": "PE12", "target": "conditional_perfect", "script": "If I studied harder, I would passed the exam.", "error_ngram": "would passed", "corrected_ngram": ["would have passed", "would pass"]},
+    {"id": "PE13", "target": "double_comparative", "script": "This phone is more cheaper than that one.", "error_ngram": "more cheaper", "corrected_ngram": ["cheaper than"]},
+    {"id": "PE14", "target": "countable_plural", "script": "There are many student in the class.", "error_ngram": "many student in", "corrected_ngram": ["many students"]},
+    {"id": "PE15", "target": "modal_aux", "script": "Do you can help me with this?", "error_ngram": "do you can", "corrected_ngram": ["can you help", "can you"]}
+  ],
+  "free_speech_prompts": [
+    {"id": "FS01", "target": "past_narrative", "prompt": "Tell me about what you did last weekend. (30초 이상)"},
+    {"id": "FS02", "target": "conditional", "prompt": "If you won the lottery, what would you do? (30초 이상)"},
+    {"id": "FS03", "target": "present_perfect", "prompt": "Talk about a country you have visited, or want to visit. (30초 이상)"}
+  ]
+}

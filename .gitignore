@@ -1,0 +1,17 @@
+# 환경/캐시
+pilot/.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 파일럿 산출물
+pilot/results.csv
+
+# 개인정보 — 음성 녹음 (레포에 올리지 않음)
+pilot/audio/
+
+# LinkLore 로컬 메모리 (버전관리 원하면 이 줄 지우기)
+.linklore/
+
+# Claude Code 로컬 설정(개인)
+.claude/settings.local.json
