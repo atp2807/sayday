@@ -16,3 +16,6 @@ pilot/audio/
 
 # Claude Code 로컬 설정(개인)
 .claude/settings.local.json
+
+# 배포 시크릿/상태 (로컬 전용)
+.deploy/

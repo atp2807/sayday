@@ -222,10 +222,11 @@ ds-bundle/
 
 ---
 
-## 11. 인프라 (해드림·링크로어 패턴 — 비용의식 사이징)
+## 11. 인프라 (링크로어 패턴 — 무도커, 비용의식 사이징)
 
-- **시작 스펙**: EC2 1대(Docker: api+voice+worker) + RDS PostgreSQL + Cloudflare DNS/TLS. Redis는 필요 시(큐 도입 시점에).
-- **배포**: GitHub Actions OIDC → ECR push → SSM 배포 (해드림 Phase1 파이프라인 재사용). Secrets Manager에 키.
+- **컨테이너/Docker 사용 금지** (확정). 배포 = EC2 직접: python venv + **systemd 유닛**(api/voice/worker 프로세스별) + **nginx 리버스프록시**.
+- **시작 스펙**: EC2 1대 + RDS PostgreSQL + Cloudflare DNS/TLS. Redis는 필요 시(큐 도입 시점에).
+- **배포 파이프라인**: GitHub Actions → rsync/git pull → `systemctl restart` (이미지 빌드 없음). Secrets Manager/env 파일에 키.
 - **스케일업 트리거 명문화** (해드림): API 느림→EC2 타입 변경 / DB 커넥션 80%→RDS 변경 / 리포트 잡 적체→worker 분리·큐 도입. **피크 대비 상시 과잉구매 금지.**
 - 모니터링: CloudWatch 알람(CPU·커넥션·에러율) → 슬랙. potato 대시보드는 ops 로그 테이블 재활용(모하더스 dev dashboard).
 
