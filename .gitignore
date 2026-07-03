@@ -1,8 +1,9 @@
 # 환경/캐시
-pilot/.venv/
+.venv/
 __pycache__/
 *.pyc
 .DS_Store
+.pytest_cache/
 
 # 파일럿 산출물
 pilot/results.csv
