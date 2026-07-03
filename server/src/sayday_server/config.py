@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 30
 
+    # 게이트웨이 키 — 비면 페이크 어댑터로 동작 (factory.py)
+    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
+    gemini_stt_model: str = "gemini-2.5-flash"
+
     env: str = "dev"  # dev | test | prod
 
 

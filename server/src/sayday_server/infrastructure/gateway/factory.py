@@ -1,0 +1,33 @@
+"""게이트웨이 조립 지점 (composition root) — 키 있으면 실어댑터, 없으면 페이크.
+
+application 은 포트만 안다. 실/페이크 선택은 여기 한 곳.
+"""
+from __future__ import annotations
+
+from ...application.ports import PushPort, RingPort, SpeechPort, TutorPort
+from ...config import Settings
+from .fakes import FakeRing, FakeSpeech, FakeTutor, LogPush
+
+
+def build_tutor(cfg: Settings) -> TutorPort:
+    if cfg.anthropic_api_key:
+        from .claude_tutor import ClaudeTutor
+
+        return ClaudeTutor(api_key=cfg.anthropic_api_key)
+    return FakeTutor()
+
+
+def build_speech(cfg: Settings) -> SpeechPort:
+    if cfg.gemini_api_key:
+        from .gemini_speech import GeminiSpeech
+
+        return GeminiSpeech(api_key=cfg.gemini_api_key, model=cfg.gemini_stt_model)
+    return FakeSpeech()
+
+
+def build_push(cfg: Settings) -> PushPort:
+    return LogPush()  # 실구현 = E5 (앱 push 토큰 생기는 시점)
+
+
+def build_ring(cfg: Settings) -> RingPort:
+    return FakeRing()  # 실구현 = E4 (LiveKit 붙는 시점)
