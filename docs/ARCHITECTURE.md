@@ -57,8 +57,8 @@ sayday/
 │  ├─ tokens/  components/  guidelines/  _ds_sync.json
 ├─ packages/
 │  ├─ ui/                      # RN 컴포넌트 킷 — ds-bundle 토큰만 소비, hex 금지
-│  ├─ api-client/              # OpenAPI 자동생성 TS 클라이언트 — 앱의 유일한 HTTP 통로
-│  └─ contracts/               # enum·이벤트 스키마 TS/Py 동기화
+│  ├─ api-client/              # OpenAPI 자동생성 JS 클라이언트(TS 아님) — 앱의 유일한 HTTP 통로
+│  └─ contracts/               # enum·이벤트 스키마 Py 정본 → JS 코드젠 + sync 테스트로 CI 동기화 검증
 ├─ tools/guards/               # naming-guard · boundary-guard · token-guard (§10)
 └─ docs/
 ```
@@ -217,7 +217,7 @@ ds-bundle/
 | `boundary-guard` (eslint-boundaries / import-linter) | 레이어 역방향 import, feature 간 직접 import, domain의 IO import |
 | `fetch-guard` | api-client 밖 fetch/axios, 앱 내 외부 API 주소 리터럴 |
 | `token-guard` | hex/rgb 리터럴, ds-bundle 산출물 수기 수정 |
-| `schema-guard` | OpenAPI drift, Alembic multiple heads, repo의 타 스키마 접근, RLS 정책 누락 테이블 |
+| `schema-guard` | OpenAPI drift, enum/contract sync 테스트(test_enum_sync류) 실패, migration_history 추적 누락·비멱등 DDL(IF NOT EXISTS 없음), repo의 타 스키마 접근, RLS 정책 누락 테이블 |
 | 기본 | ruff+mypy(strict), eslint+tsc, 커밋 prefix(feat/fix/…) |
 
 ---
@@ -226,7 +226,7 @@ ds-bundle/
 
 - **컨테이너/Docker 사용 금지** (확정). 배포 = EC2 직접: python venv + **systemd 유닛**(api/voice/worker 프로세스별) + **nginx 리버스프록시**.
 - **시작 스펙**: EC2 1대 + RDS PostgreSQL + Cloudflare DNS/TLS. Redis는 필요 시(큐 도입 시점에).
-- **배포 파이프라인**: GitHub Actions → rsync/git pull → `systemctl restart` (이미지 빌드 없음). Secrets Manager/env 파일에 키.
+- **배포 파이프라인(MVP)**: 수동 배포 — git pull + `systemctl restart` 직접 실행. Secrets Manager/env 파일에 키. GitHub Actions 자동화는 배포 빈도 늘어날 때 도입(과설계 금지, 아래 스케일업 트리거와 같은 원칙).
 - **스케일업 트리거 명문화** (해드림): API 느림→EC2 타입 변경 / DB 커넥션 80%→RDS 변경 / 리포트 잡 적체→worker 분리·큐 도입. **피크 대비 상시 과잉구매 금지.**
 - 모니터링: CloudWatch 알람(CPU·커넥션·에러율) → 슬랙. potato 대시보드는 ops 로그 테이블 재활용(모하더스 dev dashboard).
 
