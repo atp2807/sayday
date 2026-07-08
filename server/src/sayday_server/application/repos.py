@@ -153,6 +153,10 @@ class BillingRepo(Protocol):
 
     async def get_plan(self, plan_key: str) -> PlanRecord | None: ...
 
+    async def get_plan_by_id(self, plan_id: UUID) -> PlanRecord | None:
+        """billing_svc.handle_payment_event 가 subscription.plan_id 로 period_cd 를 알아야 함."""
+        ...
+
     async def create_plan(
         self, plan_key: str, name: str, price_amt: int, period_cd: str
     ) -> PlanRecord:

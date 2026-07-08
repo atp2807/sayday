@@ -81,6 +81,15 @@ class SqlBillingRepo:
         ).mappings().first()
         return _to_plan(m) if m is not None else None
 
+    async def get_plan_by_id(self, plan_id: UUID) -> PlanRecord | None:
+        m = (
+            await self._s.execute(
+                sa_text(f"SELECT {_PLAN_COLS} FROM billing.plan WHERE id = :pid"),
+                {"pid": plan_id},
+            )
+        ).mappings().first()
+        return _to_plan(m) if m is not None else None
+
     async def create_plan(
         self, plan_key: str, name: str, price_amt: int, period_cd: str
     ) -> PlanRecord:
