@@ -153,3 +153,45 @@ async def test_learner_can_update_own_row(db):
             text("SELECT nickname FROM account.learner WHERE id = :a"), {"a": a}
         )).scalar()
     assert name == "renamed"
+
+
+async def test_learning_pattern_card_owner_isolation(db):
+    """learning 스키마도 소유 격리 — ORM 모델 없음(raw SQL 마이그레이션 SSOT)이라 text() INSERT."""
+    a, b = await _seed_two_learners(db)
+    async with db.admin_uow() as s:  # A 소유 pattern_card 1행 (auth/learner 처럼 admin 경로로 seed)
+        await s.execute(
+            text(
+                "INSERT INTO learning.pattern_card "
+                "(id, learner_id, pattern_key, status_cd, fsrs_due_ts, fsrs_stability, fsrs_card, recall_window_ms, created_ts, updated_ts) "
+                "VALUES (:id, :a, 'used-to', 'ACTIVE', now(), 1.0, '{}'::jsonb, 12000, now(), now())"
+            ),
+            {"id": uuid.uuid4(), "a": a},
+        )
+    async with db.learner_uow(a) as s:  # 주인은 본다
+        rows = (await s.execute(text("SELECT id FROM learning.pattern_card"))).scalars().all()
+    assert len(rows) == 1
+    async with db.learner_uow(b) as s:  # 남은 못 본다
+        rows = (await s.execute(text("SELECT id FROM learning.pattern_card"))).scalars().all()
+    assert rows == []
+    # 위 learner_uow 들이 쓴 커넥션이 풀에서 GUC=''(빈문자열)로 복귀 → 그 dirty 커넥션에서도
+    # 에러가 아니라 0행이어야 한다 (rls _LEARNER_GUC 의 NULLIF 가드 회귀 방지).
+    async with db._app_sessions() as s:  # GUC 없음 → fail-closed
+        rows = (await s.execute(text("SELECT id FROM learning.pattern_card"))).scalars().all()
+    assert rows == []
+
+
+async def test_call_ring_owner_isolation(db):
+    """call 스키마 소유 격리 — 마찬가지로 raw SQL INSERT."""
+    a, b = await _seed_two_learners(db)
+    async with db.admin_uow() as s:
+        await s.execute(
+            text(
+                "INSERT INTO call.ring (id, learner_id, status_cd, scheduled_ts, created_ts, updated_ts) "
+                "VALUES (:id, :a, 'SCHEDULED', now(), now(), now())"
+            ),
+            {"id": uuid.uuid4(), "a": a},
+        )
+    async with db.learner_uow(a) as s:
+        assert len((await s.execute(text("SELECT id FROM call.ring"))).scalars().all()) == 1
+    async with db.learner_uow(b) as s:
+        assert (await s.execute(text("SELECT id FROM call.ring"))).scalars().all() == []
