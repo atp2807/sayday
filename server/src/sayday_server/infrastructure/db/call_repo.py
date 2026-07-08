@@ -341,3 +341,11 @@ class SqlCallRepo:
             )
         ).mappings().first()
         return _to_report(m) if m is not None else None
+
+    async def count_rings_by_status(self) -> dict[str, int]:
+        rows = (
+            await self._s.execute(
+                sa_text("SELECT status_cd, count(*) AS n FROM call.ring GROUP BY status_cd")
+            )
+        ).mappings().all()
+        return {m["status_cd"]: m["n"] for m in rows}

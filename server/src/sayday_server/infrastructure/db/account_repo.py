@@ -34,3 +34,10 @@ class SqlAccountRepo:
             text("UPDATE account.learner SET level_cd = :lc WHERE id = :lid"),
             {"lc": level_cd, "lid": learner_id},
         )
+
+    async def count_learners(self) -> int:
+        n = (
+            await self._s.execute(text("SELECT count(*) FROM account.learner"))
+        ).scalar_one()
+        assert isinstance(n, int)
+        return n

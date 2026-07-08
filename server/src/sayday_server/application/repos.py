@@ -17,11 +17,13 @@ from uuid import UUID
 from ..domain.pattern import DrillPlan, PatternCard, RecallEntry
 from .ports import PatternSpec
 from .records import (
+    OpLogRecord,
     PaymentRecord,
     PlanRecord,
     RingRecord,
     RingReportRecord,
     RingSlotRecord,
+    StateLogRecord,
     SubscriptionRecord,
     UtteranceRecord,
 )
@@ -133,6 +135,10 @@ class CallRepo(Protocol):
 
     async def get_ring_report(self, ring_id: UUID) -> RingReportRecord | None: ...
 
+    async def count_rings_by_status(self) -> dict[str, int]:
+        """status_cd → 개수 (call.ring GROUP BY). carrot 대시보드용, admin 경로."""
+        ...
+
 
 class AccountRepo(Protocol):
     """account 스키마 전용 (learner). 자격증명 없음 — auth 는 별도 스키마(§3)."""
@@ -142,6 +148,10 @@ class AccountRepo(Protocol):
         ...
 
     async def set_learner_level(self, learner_id: UUID, level_cd: str) -> None: ...
+
+    async def count_learners(self) -> int:
+        """account.learner 총 개수. carrot 대시보드용, admin 경로."""
+        ...
 
 
 class BillingRepo(Protocol):
@@ -197,6 +207,36 @@ class BillingRepo(Protocol):
         ...
 
 
+class OpsRepo(Protocol):
+    """ops 스키마 전용 (op_log·audit_log·state_log). admin 전용 — app 롤 도달 불가(§3).
+
+    append-only: 기록 메서드만(log_*), 갱신/삭제 없음. 상태전이·감사·운영작업 이력.
+    """
+
+    async def log_op(self, actor_cd: str, action_cd: str, detail: dict[str, Any] | None) -> None:
+        ...
+
+    async def log_audit(
+        self,
+        actor_cd: str,
+        subject_id: UUID | None,
+        change_cd: str,
+        detail: dict[str, Any] | None,
+    ) -> None: ...
+
+    async def log_state(
+        self, entity_cd: str, entity_id: UUID, from_cd: str | None, to_cd: str
+    ) -> None: ...
+
+    async def recent_state_logs(self, limit: int = 50) -> list[StateLogRecord]:
+        """created_ts 최신순."""
+        ...
+
+    async def recent_op_logs(self, limit: int = 50) -> list[OpLogRecord]:
+        """created_ts 최신순."""
+        ...
+
+
 class Uow(Protocol):
     """트랜잭션 경계 — 컨텍스트 종료 시 커밋 (engine.begin() 담당)."""
 
@@ -204,6 +244,7 @@ class Uow(Protocol):
     call: CallRepo
     account: AccountRepo
     billing: BillingRepo
+    ops: OpsRepo
 
 
 class UowFactory(Protocol):

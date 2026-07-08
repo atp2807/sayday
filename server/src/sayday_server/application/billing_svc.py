@@ -78,12 +78,15 @@ async def handle_payment_event(uowf: UowFactory, event: PaymentEvent, now: datet
                     started_ts=now if sub.started_ts is None else None,
                     current_period_end_ts=_period_end(period_cd, now),
                 )
+                # 상태 이력 (admin uow — 같은 트랜잭션): from = 전이 전 상태
+                await uow.ops.log_state("SUBSCRIPTION", sub.id, sub.status_cd, "ACTIVE")
         elif event.status_cd == "FAILED":
             await uow.billing.add_payment(
                 sub.learner_id, sub.id, event.amount_amt, "FAILED", event.pg_tx_ref, None
             )
             if can_transition(sub.status_cd, "PAST_DUE"):
                 await uow.billing.set_subscription_status(sub.id, "PAST_DUE")
+                await uow.ops.log_state("SUBSCRIPTION", sub.id, sub.status_cd, "PAST_DUE")
         else:
             # REFUNDED 등 — 결제 기록만 남기고 상태 전이는 하지 않는다(스펙 범위 밖).
             await uow.billing.add_payment(

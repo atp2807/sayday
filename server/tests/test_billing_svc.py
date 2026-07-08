@@ -239,3 +239,30 @@ async def test_is_entitled_states(db):
 
     # PAST_DUE
     assert await billing_svc.is_entitled(uowf, learner_id, NOW + timedelta(days=1)) is False
+
+
+async def test_payment_event_logs_subscription_state(db):
+    """상태로깅 회귀 — PAID→ACTIVE 전이 시 ops.state_log 에 SUBSCRIPTION 전이가 기록된다."""
+    learner_id = await _seed_learner(db)
+    uowf = SqlUowFactory(db)
+    plan = await _seed_plan(uowf, f"logpaid-{learner_id}")
+    pg_ref = f"logref-{learner_id}"
+
+    async with uowf.learner(learner_id) as uow:
+        sub = await uow.billing.create_subscription(learner_id, plan.id, "TRIAL", pg_ref)
+
+    event = FakePay.make_event(pg_ref, f"logtx-{learner_id}", "PAID", 9900)
+    await billing_svc.handle_payment_event(uowf, event, NOW)
+
+    async with db.admin_uow() as s:
+        rows = (
+            await s.execute(
+                text(
+                    "SELECT from_cd, to_cd FROM ops.state_log "
+                    "WHERE entity_cd = 'SUBSCRIPTION' AND entity_id = :e"
+                ),
+                {"e": sub.id},
+            )
+        ).all()
+    pairs = {(r[0], r[1]) for r in rows}
+    assert ("TRIAL", "ACTIVE") in pairs

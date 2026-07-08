@@ -118,3 +118,38 @@ class PaymentRecord:
     status_cd: str
     pg_tx_ref: str | None
     paid_ts: datetime | None
+
+
+@dataclass(frozen=True)
+class OpLogRecord:
+    """ops.op_log 1행 — 운영 작업 이력 (append-only, admin 전용)."""
+
+    id: UUID
+    actor_cd: str
+    action_cd: str
+    detail: dict[str, Any] | None
+    created_ts: datetime
+
+
+@dataclass(frozen=True)
+class AuditLogRecord:
+    """ops.audit_log 1행 — 대상(subject) 변경 감사 이력 (append-only)."""
+
+    id: UUID
+    actor_cd: str
+    subject_id: UUID | None
+    change_cd: str
+    detail: dict[str, Any] | None
+    created_ts: datetime
+
+
+@dataclass(frozen=True)
+class StateLogRecord:
+    """ops.state_log 1행 — 엔티티 상태 전이 이력 (RING/SUBSCRIPTION 등, append-only)."""
+
+    id: UUID
+    entity_cd: str
+    entity_id: UUID
+    from_cd: str | None
+    to_cd: str
+    created_ts: datetime

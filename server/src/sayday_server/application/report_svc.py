@@ -122,3 +122,7 @@ async def finalize_ring(
                 f"리포트 불가 상태: {ring.status_cd}", error_code="RING_001"
             )
         await uow.call.set_ring_status(ring_id, RingStatus.REPORTED.value)
+        # 상태 이력 (admin uow — 같은 트랜잭션): from = 전이 전 상태(ENDED)
+        await uow.ops.log_state(
+            "RING", ring_id, ring.status_cd, RingStatus.REPORTED.value
+        )

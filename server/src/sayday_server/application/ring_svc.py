@@ -71,12 +71,17 @@ async def start_ring(
             now,
             RingStatus.SCHEDULED.value,
         )
+        # 상태 이력 (admin uow — 같은 트랜잭션, 원자 커밋): 생성 = None→SCHEDULED
+        await uow.ops.log_state("RING", ring.id, None, RingStatus.SCHEDULED.value)
 
         grant = await ring_port.mint_room_grant(ring.id, learner_id)
 
         _guard(ring.status_cd, RingStatus.RINGING.value)
         await uow.call.set_ring_status(
             ring.id, RingStatus.RINGING.value, room_grant_ref=grant.token
+        )
+        await uow.ops.log_state(
+            "RING", ring.id, RingStatus.SCHEDULED.value, RingStatus.RINGING.value
         )
 
         # push_token 은 아직 없음(앱 E5) — 빈 토큰으로 발신 트리거만 시연.
@@ -111,6 +116,8 @@ async def transition_ring(
         await uow.call.set_ring_status(
             ring_id, to_value, started_ts=started_ts, ended_ts=ended_ts
         )
+        # 상태 이력 (admin uow — 같은 트랜잭션): from = 전이 전 상태
+        await uow.ops.log_state("RING", ring_id, ring.status_cd, to_value)
 
         updated = await uow.call.get_ring(ring_id)
         assert updated is not None

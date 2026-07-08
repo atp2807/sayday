@@ -170,3 +170,32 @@ async def test_transition_ring_not_found_raises(db):
     uowf = SqlUowFactory(db)
     with pytest.raises(NotFoundError):
         await ring_svc.transition_ring(uowf, uuid.uuid4(), RingStatus.RINGING, NOW)
+
+
+async def test_state_transitions_are_logged(db):
+    """상태로깅 회귀 — start_ring 은 None→SCHEDULED·SCHEDULED→RINGING 을, 이어지는
+    transition 은 RINGING→IN_CALL 을 ops.state_log 에 남긴다(같은 admin 트랜잭션 원자)."""
+    learner_id = await _seed_learner(db)
+    uowf = SqlUowFactory(db)
+    ring = await ring_svc.start_ring(
+        uowf, FakeRing(), LogPush(), InMemoryCatalog(), learner_id, None, NOW, random.Random(0)
+    )
+    t_incall = datetime(2026, 7, 8, 12, 0, 5, tzinfo=UTC)
+    await ring_svc.transition_ring(uowf, ring.id, RingStatus.IN_CALL, t_incall)
+
+    async with db.admin_uow() as s:
+        rows = (
+            await s.execute(
+                text(
+                    "SELECT from_cd, to_cd FROM ops.state_log "
+                    "WHERE entity_cd = 'RING' AND entity_id = :r"
+                ),
+                {"r": ring.id},
+            )
+        ).all()
+    # start_ring 의 두 로그는 같은 트랜잭션이라 created_ts 동일 → 순서 대신 집합으로 검증
+    pairs = {(r[0], r[1]) for r in rows}
+    assert (None, RingStatus.SCHEDULED.value) in pairs
+    assert (RingStatus.SCHEDULED.value, RingStatus.RINGING.value) in pairs
+    assert (RingStatus.RINGING.value, RingStatus.IN_CALL.value) in pairs
+    assert len(rows) == 3

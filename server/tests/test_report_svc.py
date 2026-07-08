@@ -209,3 +209,25 @@ async def test_finalize_ring_not_found_raises(db):
     uowf = SqlUowFactory(db)
     with pytest.raises(NotFoundError):
         await report_svc.finalize_ring(uowf, _tutor(), InMemoryCatalog(), uuid.uuid4(), NOW)
+
+
+async def test_finalize_logs_reported_state(db):
+    """상태로깅 회귀 — finalize_ring 은 ENDED→REPORTED 전이를 ops.state_log 에 남긴다."""
+    learner_id = await _seed_learner(db)
+    rid = await _seed_ended_ring(db, learner_id)
+    uowf = SqlUowFactory(db)
+
+    await report_svc.finalize_ring(uowf, _tutor(), InMemoryCatalog(), rid, NOW)
+
+    async with db.admin_uow() as s:
+        rows = (
+            await s.execute(
+                text(
+                    "SELECT from_cd, to_cd FROM ops.state_log "
+                    "WHERE entity_cd = 'RING' AND entity_id = :r"
+                ),
+                {"r": rid},
+            )
+        ).all()
+    pairs = {(r[0], r[1]) for r in rows}
+    assert (RingStatus.ENDED.value, RingStatus.REPORTED.value) in pairs

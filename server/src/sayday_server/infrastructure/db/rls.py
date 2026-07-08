@@ -48,11 +48,17 @@ _REFERENCE_TABLES: list[tuple[str, str, str]] = [
 ]
 
 # app 롤 정책 없이 잠그는 테이블 (RLS 만 켬 → app 접근 시 0행/거부)
+# ops 는 _APP_SCHEMAS 에 없다 → app 롤에 GRANT USAGE ON SCHEMA ops 도 없어 스키마 도달 자체
+# 불가(auth 와 동일 방식). admin(BYPASSRLS)만 접근 — carrot/worker 경로.
 _LOCKED_TABLES: list[tuple[str, str]] = [
     ("auth", "identity"),
     ("auth", "credential"),
     ("auth", "refresh_token"),
     ("auth", "otp"),
+    # ops 운영 이력 3분리 (append-only, admin 전용 — ARCHITECTURE §3)
+    ("ops", "op_log"),
+    ("ops", "audit_log"),
+    ("ops", "state_log"),
 ]
 
 

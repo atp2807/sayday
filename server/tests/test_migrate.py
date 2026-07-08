@@ -1,9 +1,9 @@
 """raw SQL 마이그레이션 러너 검증 — 진짜 PostgreSQL 에서 (없으면 skip).
 
 증명하는 것:
-1. 1회차 apply_sql_migrations → migrations/ 의 4개 파일 전부 적용.
+1. 1회차 apply_sql_migrations → migrations/ 의 5개 파일 전부 적용.
 2. 2회차 → 0개 (멱등, migration_history 로 skip).
-3. migration_history 에 정확히 4행.
+3. migration_history 에 정확히 5행.
 4. 이미 적용된 파일의 checksum 이 바뀌면 RuntimeError (불변성 가드).
 
 로컬 postgresql@15 필요 — 없으면 skip. account.learner(FK 대상)만 미리 준비하고
@@ -85,6 +85,7 @@ async def test_apply_is_idempotent_and_tracked(db):
         "0002_learning.sql",
         "0003_call.sql",
         "0004_billing.sql",
+        "0005_ops.sql",
     ]
 
     async with db.admin_engine.begin() as conn:
@@ -95,13 +96,13 @@ async def test_apply_is_idempotent_and_tracked(db):
         count = (
             await conn.execute(text("SELECT count(*) FROM public.migration_history"))
         ).scalar()
-    assert count == 4
+    assert count == 5
 
 
 async def test_checksum_change_raises(db):
     async with db.admin_engine.begin() as conn:
         applied = await apply_sql_migrations(conn)
-    assert len(applied) == 4
+    assert len(applied) == 5
 
     # 기록된 checksum 을 조작 → 파일 실제 내용과 불일치하게 만든다
     async with db.admin_engine.begin() as conn:
