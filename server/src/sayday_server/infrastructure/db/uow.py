@@ -11,22 +11,24 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...application.repos import CallRepo, LearningRepo, Uow
+from ...application.repos import AccountRepo, CallRepo, LearningRepo, Uow
+from .account_repo import SqlAccountRepo
 from .call_repo import SqlCallRepo
 from .engine import Db
 from .learning_repo import SqlLearningRepo
 
 
 class SqlUow:
-    """learning/call repo 가 동일 세션(=동일 트랜잭션)을 공유한다.
+    """learning/call/account repo 가 동일 세션(=동일 트랜잭션)을 공유한다.
 
     속성 타입을 포트(Protocol)로 선언해 Uow 의 가변 멤버 불변성(invariance)에 맞춘다.
-    이 대입이 SqlLearningRepo/SqlCallRepo 의 포트 준수를 mypy 로 검증한다.
+    이 대입이 SqlLearningRepo/SqlCallRepo/SqlAccountRepo 의 포트 준수를 mypy 로 검증한다.
     """
 
     def __init__(self, session: AsyncSession) -> None:
         self.learning: LearningRepo = SqlLearningRepo(session)
         self.call: CallRepo = SqlCallRepo(session)
+        self.account: AccountRepo = SqlAccountRepo(session)
 
 
 class SqlUowFactory:

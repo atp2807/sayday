@@ -126,11 +126,22 @@ class CallRepo(Protocol):
     async def get_ring_report(self, ring_id: UUID) -> RingReportRecord | None: ...
 
 
+class AccountRepo(Protocol):
+    """account 스키마 전용 (learner). 자격증명 없음 — auth 는 별도 스키마(§3)."""
+
+    async def get_learner_level(self, learner_id: UUID) -> str | None:
+        """진단 전은 None."""
+        ...
+
+    async def set_learner_level(self, learner_id: UUID, level_cd: str) -> None: ...
+
+
 class Uow(Protocol):
     """트랜잭션 경계 — 컨텍스트 종료 시 커밋 (engine.begin() 담당)."""
 
     learning: LearningRepo
     call: CallRepo
+    account: AccountRepo
 
 
 class UowFactory(Protocol):
@@ -146,4 +157,8 @@ class CatalogPort(Protocol):
 
     async def new_pool(self, have_keys: Sequence[str]) -> list[str]:
         """아직 안 배운 도입후보 key — 우선순위순."""
+        ...
+
+    async def starter_pool(self, level_cd: str, count: int) -> list[str]:
+        """온보딩 시 레벨별 초기 문형 후보 key — 최대 count 개, 우선순위순."""
         ...

@@ -52,3 +52,7 @@ class InMemoryCatalog:
     async def new_pool(self, have_keys: Sequence[str]) -> list[str]:
         have = set(have_keys)
         return [k for k in self._order if k not in have]
+
+    async def starter_pool(self, level_cd: str, count: int) -> list[str]:
+        """온보딩 초기 문형 — MVP: 레벨 구분 없이 시드 순서 앞 count개 (count 상한 준수)."""
+        return self._order[:count]
