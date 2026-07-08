@@ -71,6 +71,24 @@ class RoomGrant:
     expires_ts: datetime
 
 
+@dataclass(frozen=True)
+class CheckoutSession:
+    """웹결제 체크아웃 세션 — 앱은 checkout_url 로 유저를 보낸다. pg_ref=구독 식별키."""
+
+    checkout_url: str
+    pg_ref: str
+
+
+@dataclass(frozen=True)
+class PaymentEvent:
+    """웹훅으로 도착한 결제 이벤트 — PayPort.parse_webhook 이 서명검증 후 정규화한다."""
+
+    pg_ref: str
+    pg_tx_ref: str           # PG 거래 고유 ID = 웹훅 멱등키 (billing.payment.pg_tx_ref UNIQUE)
+    status_cd: str           # PAID / FAILED / REFUNDED
+    amount_amt: int          # KRW (integer)
+
+
 # ── Protocols ─────────────────────────────────────────────────────
 
 
@@ -106,3 +124,13 @@ class RingPort(Protocol):
     """실시간 방 토큰 발급 (실구현은 voice 워커 붙는 E4)."""
 
     async def mint_room_grant(self, ring_id: uuid.UUID, learner_id: uuid.UUID) -> RoomGrant: ...
+
+
+class PayPort(Protocol):
+    """웹결제 PG — 체크아웃 세션 발급 + 웹훅 파싱 (실구현=Toss/PortOne, 키/가맹점 종속)."""
+
+    async def create_checkout(
+        self, learner_id: uuid.UUID, plan_key: str, amount_amt: int
+    ) -> CheckoutSession: ...
+
+    async def parse_webhook(self, payload: bytes, signature: str) -> PaymentEvent: ...

@@ -16,7 +16,15 @@ from uuid import UUID
 
 from ..domain.pattern import DrillPlan, PatternCard, RecallEntry
 from .ports import PatternSpec
-from .records import RingRecord, RingReportRecord, RingSlotRecord, UtteranceRecord
+from .records import (
+    PaymentRecord,
+    PlanRecord,
+    RingRecord,
+    RingReportRecord,
+    RingSlotRecord,
+    SubscriptionRecord,
+    UtteranceRecord,
+)
 
 
 class LearningRepo(Protocol):
@@ -136,12 +144,62 @@ class AccountRepo(Protocol):
     async def set_learner_level(self, learner_id: UUID, level_cd: str) -> None: ...
 
 
+class BillingRepo(Protocol):
+    """billing 스키마 전용 (plan·subscription·payment)."""
+
+    async def list_active_plans(self) -> list[PlanRecord]:
+        """active_yn 인 요금제 — 카탈로그 (참조테이블 RLS 로 app 도 SELECT 가능)."""
+        ...
+
+    async def get_plan(self, plan_key: str) -> PlanRecord | None: ...
+
+    async def create_plan(
+        self, plan_key: str, name: str, price_amt: int, period_cd: str
+    ) -> PlanRecord:
+        """admin/seed 경로 — app 롤은 plan INSERT 권한 없음 (참조테이블)."""
+        ...
+
+    async def create_subscription(
+        self, learner_id: UUID, plan_id: UUID, status_cd: str, pg_ref: str | None
+    ) -> SubscriptionRecord: ...
+
+    async def get_current_subscription(self, learner_id: UUID) -> SubscriptionRecord | None:
+        """created_ts 최신 1건."""
+        ...
+
+    async def get_subscription_by_pg_ref(self, pg_ref: str) -> SubscriptionRecord | None: ...
+
+    async def set_subscription_status(
+        self,
+        subscription_id: UUID,
+        status_cd: str,
+        *,
+        started_ts: datetime | None = None,
+        current_period_end_ts: datetime | None = None,
+    ) -> None: ...
+
+    async def add_payment(
+        self,
+        learner_id: UUID,
+        subscription_id: UUID | None,
+        amount_amt: int,
+        status_cd: str,
+        pg_tx_ref: str | None,
+        paid_ts: datetime | None,
+    ) -> PaymentRecord: ...
+
+    async def get_payment_by_pg_tx(self, pg_tx_ref: str) -> PaymentRecord | None:
+        """웹훅 멱등키 (pg_tx_ref UNIQUE)."""
+        ...
+
+
 class Uow(Protocol):
     """트랜잭션 경계 — 컨텍스트 종료 시 커밋 (engine.begin() 담당)."""
 
     learning: LearningRepo
     call: CallRepo
     account: AccountRepo
+    billing: BillingRepo
 
 
 class UowFactory(Protocol):

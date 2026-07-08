@@ -4,13 +4,13 @@ application 은 포트만 안다. 실/페이크 선택은 여기 한 곳.
 """
 from __future__ import annotations
 
-from ...application.ports import PushPort, RingPort, SpeechPort, TutorPort
+from ...application.ports import PayPort, PushPort, RingPort, SpeechPort, TutorPort
 from ...application.repos import CatalogPort, UowFactory
 from ...config import Settings
 from ..catalog import InMemoryCatalog
 from ..db.engine import Db
 from ..db.uow import SqlUowFactory
-from .fakes import FakeRing, FakeSpeech, FakeTutor, LogPush
+from .fakes import FakePay, FakeRing, FakeSpeech, FakeTutor, LogPush
 
 
 def build_tutor(cfg: Settings) -> TutorPort:
@@ -35,6 +35,11 @@ def build_push(cfg: Settings) -> PushPort:
 
 def build_ring(cfg: Settings) -> RingPort:
     return FakeRing()  # 실구현 = E4 (LiveKit 붙는 시점)
+
+
+def build_pay(cfg: Settings) -> PayPort:
+    # 실 PG 어댑터(Toss/PortOne 등)는 키/가맹점 종속 → 키 생기면 여기서 분기(아직 없음).
+    return FakePay()
 
 
 def build_uow_factory(db: Db) -> UowFactory:

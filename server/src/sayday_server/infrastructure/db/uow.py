@@ -11,8 +11,9 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...application.repos import AccountRepo, CallRepo, LearningRepo, Uow
+from ...application.repos import AccountRepo, BillingRepo, CallRepo, LearningRepo, Uow
 from .account_repo import SqlAccountRepo
+from .billing_repo import SqlBillingRepo
 from .call_repo import SqlCallRepo
 from .engine import Db
 from .learning_repo import SqlLearningRepo
@@ -29,6 +30,7 @@ class SqlUow:
         self.learning: LearningRepo = SqlLearningRepo(session)
         self.call: CallRepo = SqlCallRepo(session)
         self.account: AccountRepo = SqlAccountRepo(session)
+        self.billing: BillingRepo = SqlBillingRepo(session)
 
 
 class SqlUowFactory:

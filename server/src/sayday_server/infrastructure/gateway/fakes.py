@@ -5,14 +5,17 @@ PushPort/RingPort 실구현은 인프라가 붙는 단계에서 (push=E5 앱, ri
 """
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from ...application.ports import (
+    CheckoutSession,
     CorrectionDraft,
     ElicitDraft,
     PatternSpec,
+    PaymentEvent,
     RingReportDraft,
     RoomGrant,
     TranscriptLine,
@@ -79,4 +82,42 @@ class FakeRing:
             room_url="wss://fake.livekit.local",
             token=f"fake-{ring_id}",
             expires_ts=datetime.now(UTC) + timedelta(seconds=60),
+        )
+
+
+@dataclass
+class FakePay:
+    """결정적 PG 페이크 — 키 없는 dev·테스트용. 서명 무검증.
+
+    parse_webhook 은 payload(json bytes)를 그대로 PaymentEvent 로 파싱한다. 테스트가
+    직접 이벤트를 만들 땐 make_event 헬퍼로 (PG 왕복 없이 handle_payment_event 를 구동).
+    """
+
+    async def create_checkout(
+        self, learner_id: uuid.UUID, plan_key: str, amount_amt: int
+    ) -> CheckoutSession:
+        pg_ref = f"fake-ref-{learner_id}"
+        return CheckoutSession(
+            checkout_url=f"https://fake.pg/checkout/{pg_ref}",
+            pg_ref=pg_ref,
+        )
+
+    async def parse_webhook(self, payload: bytes, signature: str) -> PaymentEvent:
+        data = json.loads(payload)
+        return PaymentEvent(
+            pg_ref=data["pg_ref"],
+            pg_tx_ref=data["pg_tx_ref"],
+            status_cd=data["status_cd"],
+            amount_amt=data["amount_amt"],
+        )
+
+    @staticmethod
+    def make_event(
+        pg_ref: str, pg_tx_ref: str, status_cd: str, amount_amt: int
+    ) -> PaymentEvent:
+        return PaymentEvent(
+            pg_ref=pg_ref,
+            pg_tx_ref=pg_tx_ref,
+            status_cd=status_cd,
+            amount_amt=amount_amt,
         )

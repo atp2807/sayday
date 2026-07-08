@@ -80,3 +80,41 @@ class RingReportRecord:
     learner_id: UUID
     summary: str
     metrics: dict[str, Any] | None
+
+
+@dataclass(frozen=True)
+class PlanRecord:
+    """billing.plan 1행 — 요금제 카탈로그 (learner 소유 아님, 참조테이블)."""
+
+    id: UUID
+    plan_key: str
+    name: str
+    price_amt: int
+    period_cd: str
+    active_yn: bool
+
+
+@dataclass(frozen=True)
+class SubscriptionRecord:
+    """billing.subscription 1행 — learner 의 구독 상태."""
+
+    id: UUID
+    learner_id: UUID
+    plan_id: UUID
+    status_cd: str
+    pg_ref: str | None
+    started_ts: datetime | None
+    current_period_end_ts: datetime | None
+
+
+@dataclass(frozen=True)
+class PaymentRecord:
+    """billing.payment 1행 — 결제 이벤트 (웹훅 멱등키 = pg_tx_ref)."""
+
+    id: UUID
+    learner_id: UUID
+    subscription_id: UUID | None
+    amount_amt: int
+    status_cd: str
+    pg_tx_ref: str | None
+    paid_ts: datetime | None

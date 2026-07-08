@@ -18,7 +18,7 @@ APP_ROLE = "sayday_app"
 _LEARNER_GUC = "NULLIF(current_setting('app.current_learner_id', true), '')::uuid"
 
 # app 롤에 USAGE 를 여는 스키마 (auth 는 제외 = 도달 불가)
-_APP_SCHEMAS: tuple[str, ...] = ("account", "learning", "call")
+_APP_SCHEMAS: tuple[str, ...] = ("account", "learning", "call", "billing")
 
 # (schema, table, 소유 판별 SQL) — 새 learner 소유 테이블은 여기 추가 (schema-guard 대상)
 _OWNED_TABLES: list[tuple[str, str, str]] = [
@@ -35,6 +35,16 @@ _OWNED_TABLES: list[tuple[str, str, str]] = [
     ("call", "utterance", f"learner_id = {_LEARNER_GUC}"),
     ("call", "correction", f"learner_id = {_LEARNER_GUC}"),
     ("call", "ring_report", f"learner_id = {_LEARNER_GUC}"),
+    # billing 스키마 (learner 소유 = 구독/결제)
+    ("billing", "subscription", f"learner_id = {_LEARNER_GUC}"),
+    ("billing", "payment", f"learner_id = {_LEARNER_GUC}"),
+]
+
+# (schema, table, 읽기 술어) — learner 소유 아닌 카탈로그/참조 테이블.
+# app 롤은 read_predicate 를 만족하는 행만 SELECT (읽기 전용). INSERT/UPDATE/DELETE
+# 권한 미부여 → 카탈로그 관리(요금제 등록)는 admin(BYPASSRLS) 경로만.
+_REFERENCE_TABLES: list[tuple[str, str, str]] = [
+    ("billing", "plan", "active_yn"),  # app 은 활성 요금제만 조회
 ]
 
 # app 롤 정책 없이 잠그는 테이블 (RLS 만 켬 → app 접근 시 0행/거부)
@@ -73,6 +83,22 @@ def rls_ddl() -> list[str]:
             FOR ALL TO {APP_ROLE}
             USING ({predicate})
             WITH CHECK ({predicate})
+            """,
+        ]
+
+    # 참조/카탈로그 테이블: app 은 read_predicate 를 만족하는 행만 SELECT (읽기 전용).
+    # INSERT/UPDATE/DELETE GRANT 없음 → 쓰기는 admin(BYPASSRLS)만 → app 의 쓰기 시도는
+    # "permission denied for table" 로 거부된다 (요금제 카탈로그 무결성).
+    for schema, table, read_predicate in _REFERENCE_TABLES:
+        stmts += [
+            f"ALTER TABLE {schema}.{table} ENABLE ROW LEVEL SECURITY",
+            f"ALTER TABLE {schema}.{table} FORCE ROW LEVEL SECURITY",
+            f"GRANT SELECT ON {schema}.{table} TO {APP_ROLE}",
+            f"DROP POLICY IF EXISTS {table}_read ON {schema}.{table}",
+            f"""
+            CREATE POLICY {table}_read ON {schema}.{table}
+            FOR SELECT TO {APP_ROLE}
+            USING ({read_predicate})
             """,
         ]
     return [s.strip() for s in stmts]
