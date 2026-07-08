@@ -87,6 +87,7 @@ class CallRepo(Protocol):
         *,
         started_ts: datetime | None = None,
         ended_ts: datetime | None = None,
+        room_grant_ref: str | None = None,
     ) -> None: ...
 
     async def add_utterance(

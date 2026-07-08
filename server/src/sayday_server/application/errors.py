@@ -20,3 +20,21 @@ class UnauthenticatedError(AppError):
 class ForbiddenError(AppError):
     def __init__(self, message: str = "권한이 없습니다") -> None:
         super().__init__("AUTH_002", message, http_status=403)
+
+
+class InvalidStateError(AppError):
+    """상태머신이 허용하지 않는 전이 — ring 수명주기 위반 등 (§5 RING_)."""
+
+    def __init__(
+        self, message: str = "허용되지 않은 상태 전이입니다", *, error_code: str = "RING_001"
+    ) -> None:
+        super().__init__(error_code, message, http_status=409)
+
+
+class NotFoundError(AppError):
+    """대상 리소스 없음. error_code 는 호출부가 도메인 프리픽스로 지정(§5)."""
+
+    def __init__(
+        self, message: str = "대상을 찾을 수 없습니다", *, error_code: str = "NOT_FOUND"
+    ) -> None:
+        super().__init__(error_code, message, http_status=404)

@@ -216,16 +216,25 @@ class SqlCallRepo:
         *,
         started_ts: datetime | None = None,
         ended_ts: datetime | None = None,
+        room_grant_ref: str | None = None,
     ) -> None:
         # None 인 인자는 기존 값 유지 (COALESCE) — 상태만 바꾸는 호출을 지원.
+        # room_grant_ref: start_ring 이 mint 후(=ring.id 확보 후) 상태전이와 함께 저장.
         await self._s.execute(
             sa_text(
                 "UPDATE call.ring SET status_cd = :st, "
                 "started_ts = COALESCE(CAST(:started AS timestamptz), started_ts), "
-                "ended_ts = COALESCE(CAST(:ended AS timestamptz), ended_ts) "
+                "ended_ts = COALESCE(CAST(:ended AS timestamptz), ended_ts), "
+                "room_grant_ref = COALESCE(:rgr, room_grant_ref) "
                 "WHERE id = :rid"
             ),
-            {"st": status_cd, "started": started_ts, "ended": ended_ts, "rid": ring_id},
+            {
+                "st": status_cd,
+                "started": started_ts,
+                "ended": ended_ts,
+                "rgr": room_grant_ref,
+                "rid": ring_id,
+            },
         )
 
     async def add_utterance(
