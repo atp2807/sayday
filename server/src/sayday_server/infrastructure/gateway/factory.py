@@ -5,7 +5,11 @@ application 은 포트만 안다. 실/페이크 선택은 여기 한 곳.
 from __future__ import annotations
 
 from ...application.ports import PushPort, RingPort, SpeechPort, TutorPort
+from ...application.repos import CatalogPort, UowFactory
 from ...config import Settings
+from ..catalog import InMemoryCatalog
+from ..db.engine import Db
+from ..db.uow import SqlUowFactory
 from .fakes import FakeRing, FakeSpeech, FakeTutor, LogPush
 
 
@@ -31,3 +35,11 @@ def build_push(cfg: Settings) -> PushPort:
 
 def build_ring(cfg: Settings) -> RingPort:
     return FakeRing()  # 실구현 = E4 (LiveKit 붙는 시점)
+
+
+def build_uow_factory(db: Db) -> UowFactory:
+    return SqlUowFactory(db)
+
+
+def build_catalog(cfg: Settings) -> CatalogPort:
+    return InMemoryCatalog()  # 실 카탈로그 테이블은 나중
